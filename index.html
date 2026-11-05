@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Katalog hydraulických dílů NEREZ Vizovice. Vyhledejte díl podle názvu či kódu a sestavte poptávku.">
+  <meta name="description" content="Kardany a hydraulické díly NEREZ Vizovice. Vyhledejte náhradní díl podle názvu či kódu a sestavte nezávaznou poptávku.">
   <meta name="theme-color" content="#092f50">
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="assets/nerez-logo.svg" type="image/svg+xml">
@@ -11,13 +11,14 @@
   <link rel="stylesheet" href="assets/fonts/ubuntu.css">
   <link rel="stylesheet" href="shop.css">
   <link rel="stylesheet" href="basket.css">
-  <title>Hydraulické díly | NEREZ Vizovice</title>
+  <link rel="stylesheet" href="layout.css">
+  <title>Kardany a hydraulické díly | NEREZ Vizovice</title>
   <script defer src="icons.js"></script>
   <script defer src="basket.js"></script>
   <script defer src="shop.js"></script>
 </head>
 <body>
-<a class="skip" href="#katalog">Přejít na produkty</a>
+<a class="skip" href="#main-content">Přejít na obsah</a>
 <div class="topbar">
   <div class="wrap topbar-inner">
     <span><i data-icon="pin"></i> Vizovice</span>
@@ -34,8 +35,34 @@
     <button class="cart-trigger" type="button" data-open="cart" aria-label="Otevřít poptávkový košík"><i data-icon="cart"></i><span>Košík</span><b id="cart-count">0</b></button>
   </div>
 </header>
-<main>
-  <section class="hero">
+<main id="main-content" class="wrap store-layout" tabindex="-1">
+  <aside id="sidebar" class="store-sidebar" aria-label="Kategorie produktů">
+    <button id="side-toggle" class="side-toggle" type="button" aria-expanded="false" aria-controls="side-links"><span><i data-icon="list"></i> Kategorie produktů</span><i data-icon="chevron-down"></i></button>
+    <div class="side-heading">Kategorie produktů</div>
+    <nav id="side-links" aria-label="Sortiment"></nav>
+    <div class="side-contact"><span class="side-contact-label">POTŘEBUJETE PORADIT?</span><strong>NEREZ Vizovice</strong><a href="tel:+420577452200"><i data-icon="phone"></i> +420 577 452 200</a><span>Tyršova 749, Vizovice</span><button type="button" data-open="contact">Kontakty <i data-icon="arrow-up-right"></i></button></div>
+  </aside>
+  <div class="store-content">
+    <div id="home-view">
+      <section id="home-hero" class="home-hero" aria-label="Náhradní díly NEREZ">
+        <article class="home-slide home-slide-kardany" data-department="kardany">
+          <div class="home-hero-copy"><div class="eyebrow"><span></span>Katalog náhradních dílů</div><h1>Kardanové hřídele</h1><p>Kardany, klouby a příslušenství<br>pro zemědělské stroje a techniku.</p><a class="button primary" href="?kategorie=kardany" data-dept="kardany">Prohlédnout kardany <i data-icon="arrow-right"></i></a></div>
+        </article>
+        <article class="home-slide home-slide-hydraulika" data-department="hydraulika" hidden>
+          <div class="home-hero-copy"><div class="eyebrow"><span></span>Katalog náhradních dílů</div><h1>Hydraulické díly</h1><p>Hadice, rychlospojky, válce a čerpadla<br>pro zemědělské stroje a techniku.</p><a class="button primary" href="?kategorie=hydraulika" data-dept="hydraulika">Prohlédnout hydrauliku <i data-icon="arrow-right"></i></a></div>
+        </article>
+        <div class="home-hero-bottom"><div class="home-slide-controls"><button type="button" data-slide="-1" aria-label="Předchozí nabídka"><i data-icon="arrow-left"></i></button><button type="button" data-slide="1" aria-label="Další nabídka"><i data-icon="arrow-right"></i></button></div></div>
+      </section>
+      <section class="home-services" aria-label="Jak vám pomůžeme">
+        <a href="#search" class="home-service"><i data-icon="search"></i><span><strong>Znáte kód dílu?</strong><small>Vyhledejte jej přímo v katalogu.</small></span></a>
+        <button type="button" class="home-service" data-open="contact"><i data-icon="phone"></i><span><strong>Poradíme s výběrem</strong><small>Obraťte se na NEREZ Vizovice.</small></span></button>
+        <button type="button" class="home-service" data-open="cart"><i data-icon="list"></i><span><strong>Sestavte si poptávku</strong><small>Cenu a dostupnost vám ověříme.</small></span></button>
+      </section>
+      <section class="home-featured" aria-labelledby="home-products-heading"><div class="section-heading"><h2 id="home-products-heading">Vybrali jsme z nabídky</h2></div><div id="home-products" class="product-grid" aria-busy="true"><p class="load-state">Načítání nabídky…</p></div><p class="catalog-note">Ceny včetně DPH jsou orientační. Konečnou cenu a dostupnost potvrdí NEREZ při vyřízení poptávky.</p></section>
+      <section class="home-about"><div><h2>Náhradní díly a servis<br>ve Vizovicích</h2></div><div><p>NEREZ Vizovice zajišťuje prodej náhradních dílů a servis zemědělské a lesnické techniky. Najdete nás na adrese Tyršova 749, Vizovice.</p><button type="button" data-open="contact">Kontakty <i data-icon="arrow-up-right"></i></button></div></section>
+    </div>
+    <div id="shop-view" hidden>
+  <section id="department-hero" class="hero">
     <div class="wrap hero-inner">
       <div class="hero-copy">
         <div class="eyebrow"><span></span>Katalog náhradních dílů</div>
@@ -69,6 +96,8 @@
       <p id="catalog-note" class="catalog-note">Ceny včetně DPH jsou orientační. Konečnou cenu a dostupnost potvrdí NEREZ při vyřízení poptávky.</p>
     </div>
   </section>
+    </div>
+  </div>
 </main>
 <footer>
   <div class="wrap foot-inner"><div><strong>NEREZ Vizovice s.r.o.</strong><span>Tyršova 749, 763 12 Vizovice</span></div><div class="foot-links"><a href="tel:+420577452200"><i data-icon="phone"></i> +420 577 452 200</a><button data-open="contact" type="button">Kontakty <i data-icon="arrow-up-right"></i></button></div></div>
