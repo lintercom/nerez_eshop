@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Katalog hydraulických dílů NEREZ Vizovice. Vyhledejte díl podle názvu či kódu a sestavte poptávku.">
+  <meta name="theme-color" content="#092f50">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="icon" href="assets/nerez-logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/fonts/fonts.css">
+  <link rel="stylesheet" href="assets/fonts/ubuntu.css">
+  <link rel="stylesheet" href="shop.css">
+  <link rel="stylesheet" href="basket.css">
+  <title>Hydraulické díly | NEREZ Vizovice</title>
+  <script defer src="icons.js"></script>
+  <script defer src="basket.js"></script>
+  <script defer src="shop.js"></script>
+</head>
+<body>
+<a class="skip" href="#katalog">Přejít na produkty</a>
+<div class="topbar">
+  <div class="wrap topbar-inner">
+    <span><i data-icon="pin"></i> Vizovice</span>
+    <div class="contacts"><a href="tel:+420577452200"><i data-icon="phone"></i> +420 577 452 200</a><a href="mailto:nerez@nerez.com"><i data-icon="mail"></i> nerez@nerez.com</a><button type="button" data-open="contact">Kontakty</button></div>
+  </div>
+</div>
+<header class="mast">
+  <div class="wrap mast-inner">
+    <a class="brand" href="index.html" aria-label="NEREZ Vizovice – úvod e-shopu"><img src="assets/nerez-logo.svg" alt="NEREZ Vizovice" width="172" height="50"><span>E-shop</span></a>
+    <form id="search-form" class="search" role="search">
+      <i data-icon="search"></i><input id="search" type="search" aria-label="Hledat podle názvu nebo kódu dílu" autocomplete="off" placeholder="Hledat podle názvu nebo kódu dílu…">
+      <button aria-label="Vyhledat díly" title="Vyhledat"><i data-icon="arrow-right"></i></button>
+    </form>
+    <button class="cart-trigger" type="button" data-open="cart" aria-label="Otevřít poptávkový košík"><i data-icon="cart"></i><span>Košík</span><b id="cart-count">0</b></button>
+  </div>
+</header>
+<main>
+  <section class="hero">
+    <div class="wrap hero-inner">
+      <div class="hero-copy">
+        <div class="eyebrow"><span></span>Katalog náhradních dílů</div>
+        <h1>Hydraulické díly</h1>
+        <p>Hadice, válce, čerpadla a další součásti hydrauliky<br class="desktop-br"> pro zemědělské stroje a techniku.</p>
+        <a href="#katalog" class="button primary">Prohlédnout produkty <i data-icon="arrow-down"></i></a>
+      </div>
+    </div>
+  </section>
+  <section class="types wrap" aria-labelledby="types-heading">
+    <div class="section-heading">
+      <h2 id="types-heading">Podkategorie</h2>
+      <div class="type-nav"><button id="all-types" class="all-types" type="button" aria-expanded="false">Zobrazit všechny <i data-icon="chevron-down"></i></button>
+        <div class="scrollers"><button id="type-prev" type="button" aria-label="Předchozí podkategorie"><i data-icon="arrow-left"></i></button><button id="type-next" type="button" aria-label="Další podkategorie"><i data-icon="arrow-right"></i></button></div>
+      </div>
+    </div>
+    <div id="type-rail" class="type-rail" aria-label="Podkategorie hydraulických dílů"></div>
+  </section>
+  <section id="katalog" class="catalog" aria-labelledby="catalog-heading">
+    <div class="wrap">
+      <div class="section-heading catalog-heading">
+        <div class="title-with-count"><h2 id="catalog-heading">Katalog produktů</h2><span id="result-count" class="count-label" aria-live="polite"></span></div>
+        <div class="catalog-tools">
+          <button id="filter-trigger" class="control" type="button" data-open="filters"><i data-icon="sliders"></i> Filtry<span id="filter-indicator" hidden></span></button>
+          <label class="sort-label"><i data-icon="sort"></i><select id="sort" aria-label="Řazení produktů"><option value="default">Doporučené</option><option value="low">Nejlevnější</option><option value="high">Nejdražší</option><option value="name">Název A–Ž</option></select><i data-icon="chevron-down"></i></label>
+        </div>
+      </div>
+      <div id="chips" class="chips"></div>
+      <div id="products" class="product-grid" aria-busy="true"><p class="load-state">Načítání produktů…</p></div>
+      <div id="paging"></div>
+      <p id="catalog-note" class="catalog-note">Ceny včetně DPH jsou orientační. Konečnou cenu a dostupnost potvrdí NEREZ při vyřízení poptávky.</p>
+    </div>
+  </section>
+</main>
+<footer>
+  <div class="wrap foot-inner"><div><strong>NEREZ Vizovice s.r.o.</strong><span>Tyršova 749, 763 12 Vizovice</span></div><div class="foot-links"><a href="tel:+420577452200"><i data-icon="phone"></i> +420 577 452 200</a><button data-open="contact" type="button">Kontakty <i data-icon="arrow-up-right"></i></button></div></div>
+</footer>
+<dialog id="dialog"><div id="dialog-content"></div></dialog>
+<div id="toast" class="toast" role="status"></div>
+<noscript>Pro procházení katalogu povolte JavaScript.</noscript>
+</body>
+</html>

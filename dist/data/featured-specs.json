@@ -1,0 +1,99 @@
+{
+  "83178": {
+    "Typ hadice": "2SN",
+    "Délka": "600 mm",
+    "Jmenovitá světlost": "DN 6",
+    "Závit na obou koncích": "M 14 × 1,5",
+    "Koncovky": "2× rovná DKOL (8)",
+    "Maximální tlak": "400 bar",
+    "Vnitřní / vnější průměr": "6,4 / 15 mm"
+  },
+  "39568": {
+    "Typ": "Zubové čerpadlo GR 1",
+    "Směr otáčení": "Katalogový název uvádí levé provedení. Směr otáčení je třeba potvrdit při poptávce.",
+    "Geometrický objem": "1,1 cm³",
+    "Maximální tlak": "230 bar",
+    "Maximální otáčky": "6 000 ot/min",
+    "Hřídel": "Kužel 1 : 8",
+    "Středicí průměr příruby": "25,4 mm",
+    "Materiál tělesa": "Hliník"
+  },
+  "39076": {
+    "Značka": "WIKA",
+    "Rozsah stupnice": "0–100 bar",
+    "Průměr ciferníku": "63 mm",
+    "Připojovací závit": "1/4″ BSP",
+    "Náplň": "Glycerin",
+    "Stupeň krytí": "IP65",
+    "Teplota média": "Max. +60 °C"
+  },
+  "70052": {
+    "Typ": "BASIC H",
+    "Počet sekcí": "3",
+    "Provedení sekcí": "Dvoučinné",
+    "Průtok": "40 l/min",
+    "Závit": "3/8″",
+    "Hmotnost": "5 kg"
+  },
+  "64376": {
+    "Závit": "Rozměr musí NEREZ potvrdit před objednáním. V podkladech se liší údaj 1/2″ a 3/8″ BSP.",
+    "Provedení": "Samice",
+    "Použití": "Brzdové válce",
+    "Maximální tlak": "220 bar",
+    "Průtok": "40 l/min",
+    "Těsnění": "NBR / PTFE",
+    "Délka": "59 mm"
+  },
+  "44756": {
+    "Značka": "Danfoss",
+    "Typ řízení": "VSPP LS",
+    "Objem": "100 cm³",
+    "Provedení": "S předřadným ventilem",
+    "Hmotnost": "3 kg"
+  },
+  "91065": {
+    "Provedení": "Jednočinné",
+    "Délka": "280 mm",
+    "Zdvih": "100 mm",
+    "Vnitřní průměr válce": "40 mm",
+    "Průměr pístnice": "20 mm",
+    "Pracovní tlak": "180 bar"
+  },
+  "78122": {
+    "Napětí": "12 V",
+    "Výkon": "1 600 W",
+    "Maximální tlak": "250 bar",
+    "Objem nádrže": "5 l",
+    "Čerpadlo": "GR 1, 3,2 cm³",
+    "Hmotnost": "11 kg"
+  },
+  "65069": {
+    "Model": "KR80",
+    "Maximální tlak": "207 bar",
+    "Trvalý výkon": "19,1 kW",
+    "Krátkodobý výkon": "26,4 kW",
+    "Hmotnost": "11 kg"
+  },
+  "72317": {
+    "Materiál": "Hliník",
+    "Napětí": "24 V",
+    "Hmotnost": "5 kg",
+    "Teplotní snímač": "Dodává se samostatně"
+  },
+  "77402": {
+    "Provedení": "Třícestné",
+    "Průtok": "60 l/min",
+    "Vnitřní závit": "3/8″",
+    "Rozměr A": "155,5 mm",
+    "Rozměr B": "21 mm"
+  },
+  "63167": {
+    "Typ kartuše": "A120C10",
+    "Jemnost filtrace": "10 µm",
+    "Průtok": "160 l/min",
+    "Umístění": "Sací strana",
+    "Nastavení obtokového ventilu": "0,25 bar",
+    "Závit": "1 1/4″",
+    "Hmotnost": "1 kg"
+  }
+}
