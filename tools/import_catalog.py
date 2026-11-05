@@ -1,4 +1,4 @@
-"""Import the public Kardanka hydraulic-parts listings into the NEREZ prototype."""
+"""Import Kardanka's public listings. Pass --kardany for the PTO-shaft catalog."""
 
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -6,7 +6,6 @@ from urllib.parse import urljoin, urlparse
 from collections import Counter
 from io import BytesIO
 import json
-import re
 import sys
 import tempfile
 import threading
@@ -18,6 +17,8 @@ from PIL import Image, ImageOps
 
 
 SOURCE = "https://www.kardanka.cz/hydraulicke-dily/"
+CATALOG_FILE = "catalog.json"
+IMAGE_DIRECTORY = "images"
 OUT = Path(__file__).resolve().parents[1] / "dist" / "data"
 CACHE = Path(tempfile.gettempdir()) / "nerez-catalog-2026-11-05"
 THREADS = threading.local()
@@ -108,13 +109,13 @@ def read_products(job):
 
 def write_json(obj):
     data = json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
-    temp = OUT / "catalog.build.json"
+    temp = OUT / (CATALOG_FILE + ".tmp")
     temp.write_text(data, encoding="utf-8")
-    temp.replace(OUT / "catalog.json")
+    temp.replace(OUT / CATALOG_FILE)
 
 
 def crawl():
-    parent = dict(id="hydraulicke-dily", sourceUrl=SOURCE)
+    parent = dict(id=urlparse(SOURCE).path.strip("/"), sourceUrl=SOURCE)
     cats = categories(page(SOURCE))
     with ThreadPoolExecutor(max_workers=5) as pool:
         all_categories = cats + [parent]
@@ -175,26 +176,38 @@ def save_image(job):
 
 
 def store_images(data):
-    (OUT / "images").mkdir(exist_ok=True)
-    jobs = [(p, f'data/images/{p["id"]}.webp') for p in data["products"]]
-    groups = [(c, f'data/images/group-{c["id"]}.webp') for c in data["categories"]]
+    (OUT / IMAGE_DIRECTORY).mkdir(exist_ok=True)
+    prefix = f"data/{IMAGE_DIRECTORY}/"
+    jobs = [(p, f'{prefix}{p["id"]}.webp') for p in data["products"]]
+    groups = [(c, f'{prefix}group-{c["id"]}.webp') for c in data["categories"]]
     with ThreadPoolExecutor(max_workers=8) as pool:
         for i, _ in enumerate(pool.map(save_image, groups + jobs)):
             if i % 250 == 0:
                 print("Processed", i + 1, "images", flush=True)
                 write_json(data)
     write_json(data)
-    print("Local images", sum(p["image"].startswith("data/images/") for p, _ in jobs), "/", len(jobs), flush=True)
+    print("Local images", sum(p["image"].startswith(prefix) for p, _ in jobs), "/", len(jobs), flush=True)
 
 
 if __name__ == "__main__":
+    kardany = "--kardany" in sys.argv
+    if kardany:
+        SOURCE = "https://www.kardanka.cz/kardanove-hridele/"
+        CATALOG_FILE = "kardany.json"
+        IMAGE_DIRECTORY = "kardany-images"
+        CACHE = CACHE / "kardany"
+        CACHE.mkdir(exist_ok=True)
     if "--images-only" in sys.argv:
         catalog = json.loads((CACHE / "remote-catalog.json").read_text(encoding="utf-8"))
     else:
         catalog = crawl()
     if "--data-only" not in sys.argv:
         store_images(catalog)
-    specs_file = OUT / "featured-specs.json"
-    specs = json.loads(specs_file.read_text(encoding="utf-8")) if specs_file.exists() else {}
-    offline_data = json.dumps({"catalog": catalog, "specs": specs}, ensure_ascii=False, separators=(",", ":"))
-    (OUT / "offline.js").write_text("window.nerezOffline = " + offline_data + ";", encoding="utf-8")
+    if kardany:
+        offline_data = json.dumps(catalog, ensure_ascii=False, separators=(",", ":"))
+        (OUT / "kardany-offline.js").write_text("window.nerezKardanyOffline = " + offline_data + ";", encoding="utf-8")
+    else:
+        specs_file = OUT / "featured-specs.json"
+        specs = json.loads(specs_file.read_text(encoding="utf-8")) if specs_file.exists() else {}
+        offline_data = json.dumps({"catalog": catalog, "specs": specs}, ensure_ascii=False, separators=(",", ":"))
+        (OUT / "offline.js").write_text("window.nerezOffline = " + offline_data + ";", encoding="utf-8")

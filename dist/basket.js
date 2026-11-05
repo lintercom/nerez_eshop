@@ -14,11 +14,11 @@ const Basket = (() => {
     if (count) count.textContent = [...lines.values()].reduce((sum, qty) => sum + qty, 0);
   }
   function inquiryText() {
-    return ['Dobrý den,', '', 'prosím o ověření dostupnosti a cen následujících hydraulických dílů:', '',
+    return ['Dobrý den,', '', 'prosím o ověření dostupnosti a cen následujících náhradních dílů:', '',
       ...entries().map(({ product: item, qty }) => `${qty} ${item.unit || 'ks'} × ${item.name}\nKód: ${item.code || item.id}\nOrientačně: ${money(price(item))} / ${item.unit || 'ks'} vč. DPH`),
       '', `Orientační součet vč. DPH: ${money(total())}`, '', 'Prosím o potvrzení aktuální ceny, dostupnosti a podmínek dodání.', '', 'Jméno / firma:', 'Telefon:', 'Poznámka:', '', 'Děkuji.'].join('\n');
   }
-  function emailUrl() { return 'mailto:nerez@nerez.com?subject=' + encodeURIComponent('Poptávka hydraulických dílů') + '&body=' + encodeURIComponent(inquiryText()); }
+  function emailUrl() { return 'mailto:nerez@nerez.com?subject=' + encodeURIComponent('Poptávka náhradních dílů') + '&body=' + encodeURIComponent(inquiryText()); }
   function download() {
     const url = URL.createObjectURL(new Blob(['\uFEFF' + inquiryText()], { type: 'text/plain;charset=utf-8' }));
     const anchor = document.createElement('a');
@@ -41,7 +41,7 @@ const Basket = (() => {
       <div class="basket-summary"><div><span>Orientační součet</span><strong>${money(total())}</strong></div><p class="muted">Částka zahrnuje DPH. Cenu a dostupnost potvrdí NEREZ.</p></div>
       <div class="basket-actions"><button type="button" class="button primary" data-basket-action="email">${icon('mail')} ${emailUrl().length > 1800 ? 'Připravit poptávku v souboru' : 'Připravit e-mailovou poptávku'}</button><button type="button" class="button secondary" data-basket-action="download">${icon('download')} Stáhnout seznam dílů</button></div>
       <p class="basket-help muted">${emailUrl().length > 1800 ? 'Seznam je delší. Stáhněte soubor a přiložte jej k e-mailu na nerez@nerez.com.' : 'Tlačítko otevře váš e-mailový program s připraveným textem. Doplňte kontakt a e-mail sami odešlete na nerez@nerez.com. Pokud se program neotevře, stáhněte seznam a přiložte jej k e-mailu.'} </p>
-    ` : `<div class="basket-empty">${icon('cart')}<h3>Váš košík je prázdný</h3><p class="muted">Vyberte hydraulické díly a přidejte je do nezávazné poptávky.</p><button type="button" class="button primary" data-basket-action="continue">Prohlédnout nabídku ${icon('arrow-right')}</button></div>`);
+    ` : `<div class="basket-empty">${icon('cart')}<h3>Váš košík je prázdný</h3><p class="muted">Vyberte díly a přidejte je do nezávazné poptávky.</p><button type="button" class="button primary" data-basket-action="continue">Prohlédnout nabídku ${icon('arrow-right')}</button></div>`);
     openPanel('cart', html);
   }
   function init(options) {

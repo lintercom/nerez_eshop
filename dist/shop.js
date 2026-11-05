@@ -8,7 +8,13 @@ const number = value => Number(value).toLocaleString('cs-CZ');
 const normalize = value => String(value || '').toLocaleLowerCase('cs').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const pageSize = 12;
 const featuredIds = ['39568','83178','39076','70052','91065','64376','44756','65069','72317','78122','77402','63167'];
+const kardanFeaturedIds = ['91518','93854','92334','66644','91674'];
+let homepageProducts = [];
 const mainTypes = ['hydraulicke-vedeni--hadice--trubky--redukce','hydraulicke-valce-a-treti-body','hydraulicka-cerpadla','hydraulicke-rozvadece','hydraulicke-motory'];
+const departments = {
+  kardany: {name:'Kardany', title:'Kardanové hřídele', description:'Kardanové hřídele, převodovky a příslušenství pro přenos výkonu mezi traktorem a strojem.'},
+  hydraulika: {name:'Hydraulické díly', title:'Hydraulické díly', description:'Hadice, válce, čerpadla a další součásti hydrauliky pro zemědělské stroje a techniku.'}
+};
 const shortNames = {
   'hydraulicke-vedeni--hadice--trubky--redukce': 'Hadice a vedení',
   'hydraulicke-valce-a-treti-body': 'Hydraulické válce',
@@ -17,6 +23,7 @@ const shortNames = {
   'nadrze-prislusenstvi': 'Nádrže a příslušenství'
 };
 let categories = [], products = [], specs = {}, ready = false, expanded = false;
+let lastDepartment;
 const byId = new Map();
 const dialog = $('#dialog');
 const rail = $('#type-rail');
@@ -55,6 +62,24 @@ function navigate(updates, scroll = false) {
   if (url.href !== location.href) history.pushState({}, '', url);
   renderRoute(scroll);
 }
+function departmentFor(p) {
+  if (Object.hasOwn(departments,p.get('kategorie'))) return p.get('kategorie');
+  const category = categories.find(item=>item.id===p.get('typ'));
+  if (category) return category.department;
+  // Page-only bookmarks from the original hydraulic shop still open that department.
+  if (p.has('page') && !p.has('kategorie') && !p.has('q')) return 'hydraulika';
+  return null;
+}
+function isHome(p) {
+  return !['kategorie','typ','q','od','do','page','sort'].some(key=>p.has(key));
+}
+function pageTitle() {
+  const p = params();
+  return (departments[departmentFor(p)]?.title || (isHome(p) ? 'Náhradní díly' : 'Katalog produktů')) + ' | NEREZ Vizovice';
+}
+function departmentRoute(id,type=null) {
+  return {kategorie:id,typ:type,q:null,od:null,do:null,page:null,sort:null,dil:null};
+}
 function catalogScroll() {
   $('#katalog').scrollIntoView({ block: 'start', behavior: 'instant' });
 }
@@ -72,12 +97,14 @@ function openPanel(type, html) {
 function closePanel() {
   if (params().has('dil')) history.replaceState({}, '', urlWith({dil:null}));
   if (dialog.open) dialog.close();
-  document.title = 'Hydraulické díly | NEREZ Vizovice';
+  document.title = pageTitle();
 }
 
 function renderTypes() {
-  const selected = params().get('typ');
-  rail.innerHTML = categories.map(category => '<a class="type-card' + (category.id === selected ? ' selected' : '') + '" href="' + esc(urlWith({typ:category.id,q:null,page:null,dil:null})) + '" data-category="' + esc(category.id) + '" title="' + esc(category.name) + '"><span class="type-photo"><img src="' + esc(category.image) + '" alt="" width="140" height="90"></span><span class="type-text"><span>' + esc(shortNames[category.id] || category.name) + '</span>' + icon('arrow-right') + '</span></a>').join('');
+  const p = params();
+  const department = departmentFor(p);
+  const selected = p.get('typ');
+  rail.innerHTML = categories.filter(c=>c.department===department).map(category => '<a class="type-card' + (category.id === selected ? ' selected' : '') + '" href="' + esc(urlWith(departmentRoute(department,category.id))) + '" data-category="' + esc(category.id) + '" title="' + esc(category.name) + '"><span class="type-photo"><img src="' + esc(category.image) + '" alt="" width="140" height="90"></span><span class="type-text"><span>' + esc(shortNames[category.id] || category.name) + '</span>' + icon('arrow-right') + '</span></a>').join('');
   setRailButtons();
 }
 function setRailButtons() {
@@ -102,9 +129,10 @@ function priceLimit(p,key) {
 }
 function getResults(p) {
   const category = p.get('typ');
+  const department = departmentFor(p);
   const query = terms(p.get('q'));
   const min = priceLimit(p,'od'), max = priceLimit(p,'do');
-  const filtered = products.filter(item => (!category || item.categoryIds.includes(category)) && matchesTerms(item,query) && (min == null || item.price >= min) && (max == null || item.price <= max));
+  const filtered = products.filter(item => (!department || item.departments.includes(department)) && (!category || item.categoryIds.includes(category)) && matchesTerms(item,query) && (min == null || item.price >= min) && (max == null || item.price <= max));
   const sorting = p.get('sort');
   if (sorting === 'low' || sorting === 'high') filtered.sort((a,b) => (a.price-b.price) * (sorting === 'low' ? 1 : -1));
   if (sorting === 'name') filtered.sort((a,b) => a.name.localeCompare(b.name,'cs',{numeric:true}));
@@ -153,7 +181,7 @@ function detail(id) {
     return;
   }
   const category = categories.find(item=>item.id === product.categoryId);
-  const rows = {'Katalogový kód':product.code,'Podkategorie':category?.name || 'Hydraulické díly',...specs[id]};
+  const rows = {'Katalogový kód':product.code,'Podkategorie':category?.name || departments[product.departments[0]].title,...specs[id]};
   const facts = Object.entries(rows).map(([label,value])=>'<dt>'+esc(label)+'</dt><dd>'+esc(value)+'</dd>').join('');
   openPanel('detail',dialogHeader('Detail produktu') + '<div class="detail-layout"><div class="detail-photo"><img src="'+esc(product.image)+'" alt="'+esc(product.name)+'"></div><div class="detail-info"><span class="product-code">'+esc(product.code)+'</span><h3>'+esc(product.name)+'</h3><dl>'+facts+'</dl><span class="price">'+money(product.price)+' <small>/ '+esc(product.unit)+'</small></span><p class="detail-note">Orientační cena včetně DPH. Dostupnost a cenu potvrdíme na poptávku.</p><form class="detail-actions" id="detail-add"><div class="quantity"><button type="button" data-qty="-1" aria-label="Snížit množství">'+icon('minus')+'</button><input id="detail-qty" type="number" min="1" max="9999" step="1" required value="1" aria-label="Počet jednotek"><button type="button" data-qty="1" aria-label="Zvýšit množství">'+icon('plus')+'</button></div><button class="button primary">'+icon('cart-add')+' Do košíku</button></form></div></div>');
   document.title = product.name + ' | NEREZ Vizovice';
@@ -161,16 +189,51 @@ function detail(id) {
 function renderRoute(scroll=false) {
   if (!ready) return;
   suggestions.hidden = true;
-  renderTypes();
-  renderCatalog();
-  const id = params().get('dil');
+  const p = params();
+  const department = departmentFor(p);
+  const home = isHome(p);
+  $('#home-view').hidden = !home;
+  $('#shop-view').hidden = home;
+  $('.skip').href = home ? '#home-products' : '#katalog';
+  renderSidebar(department,p.get('typ'));
+  if (home) {
+    search.value='';
+    $('#home-products').innerHTML = homepageProducts.map(productCard).join('');
+    $('#home-products').setAttribute('aria-busy','false');
+  } else {
+    $('#department-hero').hidden = !department;
+    $('#shop-view .types').hidden = !department;
+    if (department) {
+      $('#department-hero').dataset.department = department;
+      $('#department-hero h1').textContent = departments[department].title;
+      $('#department-hero p').textContent = departments[department].description;
+      rail.setAttribute('aria-label','Podkategorie: '+departments[department].name);
+      if (department!==lastDepartment) setExpanded(false);
+      renderTypes();
+    }
+    $('#catalog-heading').textContent = p.get('q') ? 'Výsledky hledání' : 'Katalog produktů';
+    renderCatalog();
+  }
+  lastDepartment = department;
+  const id = p.get('dil');
   if (id) detail(id);
   else closePanel();
-  if (scroll) catalogScroll();
+  if (scroll && !home) catalogScroll();
+}
+function renderSidebar(department,selected) {
+  $('#side-links').innerHTML = Object.entries(departments).map(([id,info])=>{
+    const active = department === id;
+    const link = '<a class="side-dept' + (active?' active':'') + '" href="'+esc(urlWith(departmentRoute(id)))+'" data-dept="'+id+'"'+(active && !selected?' aria-current="page"':'')+'><span>'+esc(info.name)+'</span>'+icon('chevron-right')+'</a>';
+    const children = active ? categories.filter(c=>c.department===id).map(c=>'<a class="side-sub'+(c.id===selected?' active':'')+'" href="'+esc(urlWith(departmentRoute(id,c.id)))+'" data-category="'+esc(c.id)+'"'+(c.id===selected?' aria-current="page"':'')+'>'+esc(c.name)+'</a>').join('') : '';
+    return '<div class="side-group">'+link+(active?'<div class="side-subs">'+children+'</div>':'')+'</div>';
+  }).join('');
+  $('#sidebar').classList.remove('is-open');
+  $('#side-toggle').setAttribute('aria-expanded','false');
 }
 function filters() {
   const p = params();
-  const options = categories.map(cat=>'<option value="'+esc(cat.id)+'" '+(cat.id===p.get('typ')?'selected':'')+'>'+esc(cat.name)+'</option>').join('');
+  const department = departmentFor(p);
+  const options = categories.filter(cat=>!department || cat.department===department).map(cat=>'<option value="'+esc(cat.id)+'" '+(cat.id===p.get('typ')?'selected':'')+'>'+esc(cat.name)+'</option>').join('');
   openPanel('filters', dialogHeader('Filtrovat produkty') + '<form class="filter-form" id="filters-form"><label>Typ dílu<select name="typ"><option value="">Všechny podkategorie</option>'+options+'</select></label><div class="price-range"><label>Cena od (Kč)<input name="od" type="number" step="0.01" min="0" value="'+esc(priceLimit(p,'od'))+'" placeholder="0"></label><label>Cena do (Kč)<input name="do" type="number" step="0.01" min="0" value="'+esc(priceLimit(p,'do'))+'" placeholder="Bez omezení"></label></div><div class="filter-buttons"><button class="button primary" type="submit">Zobrazit produkty '+icon('arrow-right')+'</button><button class="button secondary" type="button" data-clear-filters>Zrušit filtry</button></div></form>');
 }
 function contact() {
@@ -195,14 +258,14 @@ $('#search-form').addEventListener('keydown',event=>{
   }
 });
 $('#search-form').addEventListener('focusout',event=>{ if (!event.currentTarget.contains(event.relatedTarget)) suggestions.hidden=true; });
-$('#search-form').addEventListener('submit',event=>{ event.preventDefault(); if (ready) navigate({q:search.value.trim(),typ:null,od:null,do:null,page:null,dil:null},true); search.blur(); });
+$('#search-form').addEventListener('submit',event=>{ event.preventDefault(); if (ready) navigate({...departmentRoute('vse'),q:search.value.trim()},true); search.blur(); });
 $('#sort').addEventListener('change',event=>navigate({sort:event.target.value,page:null,dil:null}));
 $('#type-prev').addEventListener('click',()=>moveRail(-1));
 $('#type-next').addEventListener('click',()=>moveRail(1));
 rail.addEventListener('scroll',setRailButtons,{passive:true});
 window.addEventListener('resize',setRailButtons);
-$('#all-types').addEventListener('click',()=>{
-  expanded=!expanded;
+function setExpanded(value) {
+  expanded=value;
   rail.classList.toggle('expanded',expanded);
   $('.scrollers').hidden=expanded;
   const link=$('#all-types');
@@ -210,12 +273,36 @@ $('#all-types').addEventListener('click',()=>{
   link.innerHTML=(expanded?'Sbalit podkategorie':'Zobrazit všechny')+' '+icon('chevron-down');
   rail.scrollLeft=0;
   setRailButtons();
+}
+$('#all-types').addEventListener('click',()=>setExpanded(!expanded));
+$('#side-toggle').addEventListener('click',()=>{
+  const open=$('#sidebar').classList.toggle('is-open');
+  $('#side-toggle').setAttribute('aria-expanded',String(open));
 });
+document.querySelectorAll('[data-slide]').forEach(button=>button.addEventListener('click',()=>{
+  const slides=Array.from(document.querySelectorAll('.home-slide'));
+  const next=(slides.findIndex(s=>!s.hidden)+Number(button.dataset.slide)+slides.length)%slides.length;
+  slides.forEach((slide,index)=>slide.hidden=index!==next);
+}));
 dialog.addEventListener('cancel',event=>{event.preventDefault();closePanel();});
 dialog.addEventListener('click',event=>{if(event.target===dialog)closePanel();});
 document.addEventListener('click',event=>{
+  const anchor = event.target.closest('a[href^="#"]');
+  if (anchor && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+    const target = document.getElementById(anchor.hash.slice(1));
+    if (target) {
+      event.preventDefault();
+      target.scrollIntoView({block:'start'});
+      if (target === search) search.focus();
+      else if (anchor.matches('.skip')) {
+        target.tabIndex = -1;
+        target.focus({preventScroll:true});
+      }
+      return;
+    }
+  }
   if (!event.target.closest('#search-form')) suggestions.hidden=true;
-  const action = event.target.closest('[data-open],[data-close],[data-category],[data-product],[data-add],[data-page],[data-remove-filter],[data-reset],[data-qty],[data-clear-filters]');
+  const action = event.target.closest('[data-open],[data-close],[data-dept],[data-category],[data-product],[data-add],[data-page],[data-remove-filter],[data-reset],[data-qty],[data-clear-filters]');
   if (!action || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
   const d = action.dataset;
   if ('close' in d) {closePanel();return;}
@@ -223,7 +310,12 @@ document.addEventListener('click',event=>{
   if (!ready) return;
   if (d.open==='cart') Basket.open();
   if (d.open==='filters') filters();
-  if (d.category) { event.preventDefault(); navigate({typ:d.category,q:null,page:null,dil:null,od:null,do:null},true); }
+  if (d.dept) {
+    event.preventDefault();
+    navigate(departmentRoute(d.dept));
+    window.scrollTo({top:0,behavior:'instant'});
+  }
+  if (d.category) { event.preventDefault(); navigate(departmentRoute(categories.find(c=>c.id===d.category).department,d.category),true); }
   if (d.product) { event.preventDefault(); navigate({dil:d.product}); }
   if (d.add) Basket.add(d.add);
   if (d.page) navigate({page:Number(d.page),dil:null},true);
@@ -249,43 +341,64 @@ document.addEventListener('submit',event=>{
   }
 });
 window.addEventListener('popstate',()=>renderRoute());
+function loadScript(src) {
+  return new Promise((resolve,reject)=>{
+    const script = document.createElement('script');
+    script.src = src;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.append(script);
+  });
+}
+async function loadJson(path) {
+  const response = await fetch(path);
+  if (!response.ok) throw new Error(path);
+  return response.json();
+}
 async function loadCatalog() {
   if (offline) {
-    await new Promise((resolve,reject)=>{
-      const script = document.createElement('script');
-      script.src = 'data/offline.js';
-      script.onload = resolve;
-      script.onerror = reject;
-      document.head.append(script);
-    });
-    return window.nerezOffline;
+    await Promise.all([loadScript('data/offline.js'),loadScript('data/kardany-offline.js')]);
+    return {hydraulika:window.nerezOffline.catalog, kardany:window.nerezKardanyOffline, specs:window.nerezOffline.specs};
   }
-  const [response,technicalData] = await Promise.all([
-    fetch('data/catalog.json'),
-    fetch('data/featured-specs.json').then(res=>res.ok ? res.json() : {}).catch(()=>({}))
+  const [hydraulika,kardany,specs] = await Promise.all([
+    loadJson('data/catalog.json'), loadJson('data/kardany.json'), loadJson('data/featured-specs.json').catch(()=>({}))
   ]);
-  if (!response.ok) throw new Error('catalog');
-  return {catalog:await response.json(), specs:technicalData};
+  return {hydraulika,kardany,specs};
 }
 async function start() {
   try {
     const loaded = await loadCatalog();
-    const data = loaded.catalog;
     specs = loaded.specs;
     const order = new Map(mainTypes.map((id,index)=>[id,index]));
-    categories = data.categories.sort((a,b)=>(order.get(a.id) ?? 99)-(order.get(b.id) ?? 99));
-    data.products.forEach(item=>{
-      item.searchText = normalize(item.name+' '+item.code);
-      item.searchCompact = normalize(item.code).replace(/[^a-z0-9]/g,'');
-      byId.set(item.id,item);
-    });
-    const priority = new Set(featuredIds);
-    products = [...featuredIds.map(id=>byId.get(id)).filter(Boolean),...data.products.filter(item=>!priority.has(item.id))];
+    for (const department of Object.keys(departments)) {
+      const group = loaded[department];
+      categories.push(...group.categories.map(c=>({...c,department})));
+      for (const item of group.products) {
+        const existing = byId.get(item.id);
+        if (existing) {
+          existing.departments.push(department);
+          existing.categoryIds = [...new Set([...existing.categoryIds,...item.categoryIds])];
+        } else {
+          item.departments = [department];
+          item.searchText = normalize(item.name+' '+item.code);
+          item.searchCompact = normalize(item.code).replace(/[^a-z0-9]/g,'');
+          byId.set(item.id,item);
+        }
+      }
+    }
+    categories.sort((a,b)=>(order.get(a.id) ?? 99)-(order.get(b.id) ?? 99));
+    const priority = new Set([...kardanFeaturedIds,...featuredIds]);
+    products = [...Array.from(priority,id=>byId.get(id)).filter(Boolean),...Array.from(byId.values()).filter(item=>!priority.has(item.id))];
+    homepageProducts = kardanFeaturedIds.slice(0,4).flatMap((id,index)=>[byId.get(id),byId.get(featuredIds[index])]).filter(Boolean);
     Basket.init({products:byId,notify,openPanel,closePanel});
     ready=true;
     renderRoute();
     if (!params().get('dil') && (params().has('typ') || params().has('q') || params().has('page') || location.hash === '#katalog')) catalogScroll();
   } catch {
+    $('#home-view').hidden=true;
+    $('#shop-view').hidden=false;
+    $('#department-hero').hidden=true;
+    $('#shop-view .types').hidden=true;
     $('#products').setAttribute('aria-busy','false');
     $('#products').innerHTML='<div class="blank"><h3>Katalog se nepodařilo načíst</h3><p>Obnovte stránku a zkuste to znovu.</p><a class="button secondary" href="./">Obnovit katalog</a></div>';
   }
