@@ -101,7 +101,7 @@ h2 { font-size:clamp(30px,2.7vw,39px); font-weight:600; line-height:1.08; letter
 .type-photo img { width:145px; max-height:100%; object-fit:contain; mix-blend-mode:multiply; }
 .type-card .type-text { display:flex; justify-content:space-between; align-items:center; gap:5px; font-family:var(--display); font-size:21px; line-height:1.12; font-weight:600; margin-top:auto; }
 .type-card .icon { width:14px; height:14px; color:#536f80; }
-.catalog { border-top:1px solid #e0e6e9; background:var(--paper); padding:30px 0 35px; min-height:420px; scroll-margin-top:8px; }
+.catalog { border-top:0; background:transparent; padding:30px 0 35px; min-height:420px; scroll-margin-top:8px; }
 .catalog-heading { margin-bottom:21px; }
 .title-with-count { flex-wrap:wrap; gap:12px; }
 .count-label { font-size:14px; color:var(--muted); border-left:1px solid #c8d1d7; padding-left:12px; }
