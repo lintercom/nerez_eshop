@@ -885,7 +885,7 @@ body, .mast { background: #fff; }
   gap: 0;
   align-items: stretch;
   background: var(--page-background);
-  border-top: 5px solid var(--navy);
+  border-top: 0;
   border-radius: var(--radius-panel);
   box-shadow: 0 7px 24px rgba(8,47,80,.15), 0 2px 5px rgba(8,47,80,.07);
   margin-top: 12px;
