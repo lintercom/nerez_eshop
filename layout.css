@@ -803,3 +803,17 @@
   background-image:url("assets/kardany-hero.webp");
 }
 
+
+/* Original NEREZ homepage slideshow; desktop and mobile source photographs. */
+.nerez-carousel { aspect-ratio:1920/614; min-height:300px; }
+.nerez-hero-slide { position:absolute; inset:0; opacity:0; transition:opacity 1s ease; pointer-events:none; }
+.nerez-hero-slide.is-active { opacity:1; }
+.nerez-hero-slide img { width:100%; height:100%; object-fit:cover; display:block; }
+.nerez-hero-text { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; padding:36px; background:linear-gradient(90deg,rgba(0,0,0,.45),transparent); text-shadow:0 2px 8px #0008; }
+.home-hero .nerez-hero-text h1 { font-size:clamp(26px,3vw,44px); max-width:650px; margin:0 0 12px; }
+.nerez-hero-text p { font-size:clamp(16px,1.5vw,22px); max-width:520px; margin:0; }
+.nerez-carousel-controls { position:absolute; bottom:14px; right:14px; display:flex; gap:6px; }
+.nerez-carousel-controls button { border:1px solid #ffffff80; color:white; background:#092f50cc; border-radius:4px; min-width:36px; min-height:36px; cursor:pointer; padding:5px 10px; }
+.nerez-carousel-controls button:hover { background:#092f50; }
+@media(max-width:767px) { .nerez-carousel { min-height:350px; aspect-ratio:1; } .nerez-hero-text { padding:24px; } }
+@media(prefers-reduced-motion:reduce) { .nerez-hero-slide { transition:none; } }

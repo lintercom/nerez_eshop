@@ -6,12 +6,13 @@
   --border: #d9e0e4;
   --muted: #536674;
   --paper: #f5f7f8;
+  --page-background: #e8f2fc;
   --display: "Barlow Condensed", "Arial Narrow", sans-serif;
   --body: "Barlow", "Ubuntu", Arial, sans-serif;
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-body { margin: 0; font-family: var(--body); color: var(--ink); font-size: 16px; background: #fff; }
+body { margin: 0; font-family: var(--body); color: var(--ink); font-size: 16px; background: var(--page-background); }
 body:has(dialog[open]) { overflow: hidden; }
 button, input, select { font: inherit; color: inherit; }
 button, a, select { -webkit-tap-highlight-color: transparent; }
@@ -36,7 +37,7 @@ h1,h2,h3 { font-family: var(--display); }
 .contacts { gap: 26px; }
 .contacts button { padding: 0 0 0 22px; border-left: 1px solid #ffffff48; color: white; font-size: inherit; }
 .contacts a:hover,.contacts button:hover,.foot-links a:hover,.foot-links button:hover { text-decoration: underline; }
-.mast { background: #fff; }
+.mast { background: var(--page-background); }
 .mast-inner { display: flex; min-height: 82px; align-items: center; gap: clamp(28px,4.4vw,82px); }
 .brand { display: inline-flex; align-items: center; flex-shrink: 0; }
 .brand img { width: clamp(134px, 12vw, 175px); height: auto; }
