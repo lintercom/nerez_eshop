@@ -1125,3 +1125,8 @@ body, .mast { background: #fff; }
 }
 @media(max-width:680px) { .topbar .contacts [data-open="contact"] { display: none; } }
 .side-contact > [data-open="contact"] { display: inline-flex; width: auto; font-size: 12px; text-decoration: underline; }
+
+/* Keep category navigation on the shared pale blue surface. */
+.store-sidebar,
+.store-sidebar .side-contact,
+.store-sidebar .side-toggle { background: var(--page-background); }
