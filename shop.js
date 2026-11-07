@@ -7,21 +7,14 @@ const money = value => priceFormat.format(Number(value)) + ' Kč';
 const number = value => Number(value).toLocaleString('cs-CZ');
 const normalize = value => String(value || '').toLocaleLowerCase('cs').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const pageSize = 12;
-const featuredIds = ['39568','83178','39076','70052','91065','64376','44756','65069','72317','78122','77402','63167'];
-const kardanFeaturedIds = ['91518','93854','92334','66644','91674'];
+const featuredIds = ['10001'];
+const kardanFeaturedIds = [];
 let homepageProducts = [];
-const mainTypes = ['hydraulicke-vedeni--hadice--trubky--redukce','hydraulicke-valce-a-treti-body','hydraulicka-cerpadla','hydraulicke-rozvadece','hydraulicke-motory'];
+const mainTypes = ['hydraulicke-hadice'];
 const departments = {
-  kardany: {name:'Kardany', title:'Kardanové hřídele', description:'Kardanové hřídele, převodovky a příslušenství pro přenos výkonu mezi traktorem a strojem.'},
-  hydraulika: {name:'Hydraulické díly', title:'Hydraulické díly', description:'Hadice, válce, čerpadla a další součásti hydrauliky pro zemědělské stroje a techniku.'}
+  hydraulika: {name:'Hydraulika', title:'Hydraulické hadice', description:'Hydraulické hadice ze skladové evidence NEREZ Vizovice.'}
 };
-const shortNames = {
-  'hydraulicke-vedeni--hadice--trubky--redukce': 'Hadice a vedení',
-  'hydraulicke-valce-a-treti-body': 'Hydraulické válce',
-  'elektricke-ventily-kulove-kohouty': 'Elektrické ventily',
-  'hydraulicke-parkovaci-podpery':'Parkovací podpěry',
-  'nadrze-prislusenstvi': 'Nádrže a příslušenství'
-};
+const shortNames = {};
 let categories = [], products = [], specs = {}, ready = false, expanded = false;
 let lastDepartment;
 const byId = new Map();
@@ -139,7 +132,7 @@ function getResults(p) {
   return filtered;
 }
 function productCard(product) {
-  return '<article class="product-card"><a class="product-main" data-product="' + esc(product.id) + '" href="' + esc(urlWith({dil:product.id})) + '"><div class="product-img"><img loading="lazy" src="' + esc(product.image) + '" alt=""></div><span class="product-code">' + esc(product.code) + '</span><h3>' + esc(product.name) + '</h3></a><div class="product-bottom"><span class="price">' + money(product.price) + ' <small>/ ' + esc(product.unit) + '</small></span><button type="button" class="add-btn" data-add="' + esc(product.id) + '" aria-label="Přidat do košíku: ' + esc(product.name) + '" title="Přidat do košíku">' + icon('cart-add') + '</button></div></article>';
+  return '<article class="product-card"><a class="product-main" data-product="' + esc(product.id) + '" href="' + esc(urlWith({dil:product.id})) + '"><div class="product-img"><img loading="lazy" src="' + esc(product.image) + '" alt=""></div><span class="product-code">' + esc(product.code) + '</span><h3>' + esc(product.name) + '</h3><p class="product-stock">Množství: ' + number(product.stock) + ' ks</p></a><div class="product-bottom"><span class="price">' + money(product.price) + ' <small>/ ' + esc(product.unit) + '</small></span><button type="button" class="add-btn" data-add="' + esc(product.id) + '" aria-label="Přidat do košíku: ' + esc(product.name) + '" title="Přidat do košíku">' + icon('cart-add') + '</button></div></article>';
 }
 function pagination(page,total) {
   if (total < 2) return '';
@@ -181,9 +174,9 @@ function detail(id) {
     return;
   }
   const category = categories.find(item=>item.id === product.categoryId);
-  const rows = {'Katalogový kód':product.code,'Podkategorie':category?.name || departments[product.departments[0]].title,...specs[id]};
+  const rows = {'Katalogový kód':product.code,'Kategorie':category?.name || departments[product.departments[0]].title,'Množství':number(product.stock)+' ks','Cena bez DPH':money(product.priceExVat)+' / ks','DPH':number(product.vat)+' %'};
   const facts = Object.entries(rows).map(([label,value])=>'<dt>'+esc(label)+'</dt><dd>'+esc(value)+'</dd>').join('');
-  openPanel('detail',dialogHeader('Detail produktu') + '<div class="detail-layout"><div class="detail-photo"><img src="'+esc(product.image)+'" alt="'+esc(product.name)+'"></div><div class="detail-info"><span class="product-code">'+esc(product.code)+'</span><h3>'+esc(product.name)+'</h3><dl>'+facts+'</dl><span class="price">'+money(product.price)+' <small>/ '+esc(product.unit)+'</small></span><p class="detail-note">Orientační cena včetně DPH. Dostupnost a cenu potvrdíme na poptávku.</p><form class="detail-actions" id="detail-add"><div class="quantity"><button type="button" data-qty="-1" aria-label="Snížit množství">'+icon('minus')+'</button><input id="detail-qty" type="number" min="1" max="9999" step="1" required value="1" aria-label="Počet jednotek"><button type="button" data-qty="1" aria-label="Zvýšit množství">'+icon('plus')+'</button></div><button class="button primary">'+icon('cart-add')+' Do košíku</button></form></div></div>');
+  openPanel('detail',dialogHeader('Detail produktu') + '<div class="detail-layout"><div class="detail-photo"><img src="'+esc(product.image)+'" alt="'+esc(product.name)+'"></div><div class="detail-info"><span class="product-code">'+esc(product.code)+'</span><h3>'+esc(product.name)+'</h3><dl>'+facts+'</dl><span class="price">'+money(product.price)+' <small>s DPH / '+esc(product.unit)+'</small></span><p class="detail-note">Ukázková nabídka. Aktuální cenu a dostupnost potvrdíme na poptávku.</p><form class="detail-actions" id="detail-add"><div class="quantity"><button type="button" data-qty="-1" aria-label="Snížit množství">'+icon('minus')+'</button><input id="detail-qty" type="number" min="1" max="9999" step="1" required value="1" aria-label="Počet jednotek"><button type="button" data-qty="1" aria-label="Zvýšit množství">'+icon('plus')+'</button></div><button class="button primary">'+icon('cart-add')+' Do košíku</button></form></div></div>');
   document.title = product.name + ' | NEREZ Vizovice';
 }
 function renderRoute(scroll=false) {
@@ -202,7 +195,7 @@ function renderRoute(scroll=false) {
     $('#home-products').setAttribute('aria-busy','false');
   } else {
     $('#department-hero').hidden = !department;
-    $('#shop-view .types').hidden = !department;
+    $('#shop-view .types').hidden = true;
     if (department) {
       $('#department-hero').dataset.department = department;
       $('#department-hero h1').textContent = departments[department].title;
@@ -361,7 +354,7 @@ async function loadCatalog() {
     return {hydraulika:window.nerezOffline.catalog, kardany:window.nerezKardanyOffline, specs:window.nerezOffline.specs};
   }
   const [hydraulika,kardany,specs] = await Promise.all([
-    loadJson('data/catalog.json'), loadJson('data/kardany.json'), loadJson('data/featured-specs.json').catch(()=>({}))
+    loadJson('data/catalog.json?v=single-product-3'), loadJson('data/kardany.json?v=single-product-3'), loadJson('data/featured-specs.json?v=single-product-3').catch(()=>({}))
   ]);
   return {hydraulika,kardany,specs};
 }
@@ -380,7 +373,7 @@ async function start() {
           existing.categoryIds = [...new Set([...existing.categoryIds,...item.categoryIds])];
         } else {
           item.departments = [department];
-          item.searchText = normalize(item.name+' '+item.code);
+          item.searchText = normalize(item.name+' '+item.code+' '+(item.text || ''));
           item.searchCompact = normalize(item.code).replace(/[^a-z0-9]/g,'');
           byId.set(item.id,item);
         }
@@ -389,7 +382,7 @@ async function start() {
     categories.sort((a,b)=>(order.get(a.id) ?? 99)-(order.get(b.id) ?? 99));
     const priority = new Set([...kardanFeaturedIds,...featuredIds]);
     products = [...Array.from(priority,id=>byId.get(id)).filter(Boolean),...Array.from(byId.values()).filter(item=>!priority.has(item.id))];
-    homepageProducts = kardanFeaturedIds.slice(0,4).flatMap((id,index)=>[byId.get(id),byId.get(featuredIds[index])]).filter(Boolean);
+    homepageProducts = products.slice(0,8);
     Basket.init({products:byId,notify,openPanel,closePanel});
     ready=true;
     renderRoute();
