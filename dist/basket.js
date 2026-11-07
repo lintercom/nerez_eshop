@@ -1,90 +1,44 @@
 'use strict';
 const Basket = (() => {
   const storageKey = 'nerez-inquiry-basket-v1';
-  const maxQuantity = 9999;
-  let products = new Map(), lines = new Map(), notify = () => {}, openPanel, closePanel;
-  const quantity = value => Math.min(maxQuantity, Math.max(1, Math.floor(Number(value) || 1)));
-  const product = id => products.get(String(id)) || products.get(Number(id));
-  const entries = () => [...lines].map(([id, qty]) => ({ id, qty, product: product(id) })).filter(line => line.product);
-  const price = item => Number.isFinite(Number(item.price)) ? Math.max(0, Number(item.price)) : 0;
-  const total = () => entries().reduce((sum, line) => sum + price(line.product) * line.qty, 0);
+  let products = new Map(), lines = new Map();
+  const get = id => products.get(String(id));
+  const entries = () => [...lines].filter(([id]) => get(id)).map(([id,qty])=>({id,qty,product:get(id)}));
+  const total = () => entries().reduce((sum,line)=>sum+Math.round(Number(line.product.price)*100)*line.qty,0)/100;
+  const max = id => Math.max(0,Number(get(id)?.stock)||0);
   function persist() {
-    try { localStorage.setItem(storageKey, JSON.stringify([...lines])); } catch (_) { /* A basket also works without browser storage. */ }
-    const count = document.getElementById('cart-count');
-    if (count) count.textContent = [...lines.values()].reduce((sum, qty) => sum + qty, 0);
+    try { localStorage.setItem(storageKey,JSON.stringify([...lines])); } catch {}
+    document.querySelector('#cart-count').textContent = entries().reduce((sum,l)=>sum+l.qty,0);
   }
-  function inquiryText() {
-    return ['Dobrý den,', '', 'prosím o ověření dostupnosti a cen následujících náhradních dílů:', '',
-      ...entries().map(({ product: item, qty }) => `${qty} ${item.unit || 'ks'} × ${item.name}\nKód: ${item.code || item.id}\nOrientačně: ${money(price(item))} / ${item.unit || 'ks'} vč. DPH`),
-      '', `Orientační součet vč. DPH: ${money(total())}`, '', 'Prosím o potvrzení aktuální ceny, dostupnosti a podmínek dodání.', '', 'Jméno / firma:', 'Telefon:', 'Poznámka:', '', 'Děkuji.'].join('\n');
-  }
-  function emailUrl() { return 'mailto:nerez@nerez.com?subject=' + encodeURIComponent('Poptávka náhradních dílů') + '&body=' + encodeURIComponent(inquiryText()); }
-  function download() {
-    const url = URL.createObjectURL(new Blob(['\uFEFF' + inquiryText()], { type: 'text/plain;charset=utf-8' }));
-    const anchor = document.createElement('a');
-    anchor.href = url; anchor.download = 'nerez-poptavka.txt'; document.body.appendChild(anchor); anchor.click(); anchor.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    notify('Seznam poptávky byl stažen');
-  }
-  function open() {
+  function render() {
     const items = entries();
-    const html = dialogHeader('Poptávkový košík') + (items.length ? `
-      <div class="basket-intro"><p class="muted">Vybrané díly můžete nezávazně poptat u NEREZu.</p></div>
-      <div class="basket-list">${items.map(({ id, qty, product: item }) => `
-        <article class="basket-line" data-basket-line="${esc(id)}">
-          <img class="basket-image" src="${esc(item.image || '')}" alt="" loading="lazy">
-          <div class="basket-detail"><span class="basket-code">${esc(item.code || '')}</span><h3>${esc(item.name)}</h3>
-            <div class="basket-line-bottom"><div class="quantity basket-quantity"><button type="button" data-basket-action="decrease" data-basket-id="${esc(id)}" aria-label="Snížit množství: ${esc(item.name)}" ${qty === 1 ? 'disabled' : ''}>${icon('minus')}</button><input type="number" min="1" max="${maxQuantity}" step="1" value="${qty}" data-basket-quantity="${esc(id)}" aria-label="Množství: ${esc(item.name)}"><button type="button" data-basket-action="increase" data-basket-id="${esc(id)}" aria-label="Zvýšit množství: ${esc(item.name)}" ${qty === maxQuantity ? 'disabled' : ''}>${icon('plus')}</button></div><strong>${money(price(item) * qty)}</strong></div>
-            <span class="basket-unit-price muted">${money(price(item))} / ${esc(item.unit || 'ks')} vč. DPH</span>
-          </div><button class="basket-remove" type="button" data-basket-action="remove" data-basket-id="${esc(id)}" aria-label="Odebrat: ${esc(item.name)}">${icon('trash')}</button>
-        </article>`).join('')}</div>
-      <div class="basket-summary"><div><span>Orientační součet</span><strong>${money(total())}</strong></div><p class="muted">Částka zahrnuje DPH. Cenu a dostupnost potvrdí NEREZ.</p></div>
-      <div class="basket-actions"><button type="button" class="button primary" data-basket-action="email">${icon('mail')} ${emailUrl().length > 1800 ? 'Připravit poptávku v souboru' : 'Připravit e-mailovou poptávku'}</button><button type="button" class="button secondary" data-basket-action="download">${icon('download')} Stáhnout seznam dílů</button></div>
-      <p class="basket-help muted">${emailUrl().length > 1800 ? 'Seznam je delší. Stáhněte soubor a přiložte jej k e-mailu na nerez@nerez.com.' : 'Tlačítko otevře váš e-mailový program s připraveným textem. Doplňte kontakt a e-mail sami odešlete na nerez@nerez.com. Pokud se program neotevře, stáhněte seznam a přiložte jej k e-mailu.'} </p>
-    ` : `<div class="basket-empty">${icon('cart')}<h3>Váš košík je prázdný</h3><p class="muted">Vyberte díly a přidejte je do nezávazné poptávky.</p><button type="button" class="button primary" data-basket-action="continue">Prohlédnout nabídku ${icon('arrow-right')}</button></div>`);
-    openPanel('cart', html);
+    renderPage('cart', pageHeading('Košík')+Checkout.steps(1)+(items.length ? `<div class="checkout-layout"><section class="checkout-card"><h2>Vybrané zboží</h2>${items.map(({id,qty,product:p})=>`<article class="order-line"><img src="${esc(p.image)}" alt=""><div><a data-product="${esc(id)}" href="${esc(urlWith({stranka:null,dil:id}))}"><strong>${esc(displayName(p))}</strong></a><p class="muted">Kód ${esc(p.code)} · ${money(p.price)} / ks s DPH</p><p class="muted">Ukázkový stav: ${max(id)} ks</p><div class="quantity"><button type="button" data-cart="minus" data-id="${esc(id)}" aria-label="Snížit množství" ${qty<=1?'disabled':''}>${icon('minus')}</button><input data-cart-qty="${esc(id)}" type="number" min="1" max="${max(id)}" value="${qty}" aria-label="Množství ${esc(displayName(p))}"><button type="button" data-cart="plus" data-id="${esc(id)}" aria-label="Zvýšit množství" ${qty>=max(id)?'disabled':''}>${icon('plus')}</button></div></div><div class="order-line-end"><strong>${money(p.price*qty)}</strong><button type="button" class="text-button" data-cart="remove" data-id="${esc(id)}">Odebrat</button></div></article>`).join('')}<a href="?kategorie=hydraulika" data-dept="hydraulika" class="text-link">${icon('arrow-left')} Pokračovat ve výběru</a></section><aside class="checkout-card order-summary"><h2>Souhrn košíku</h2><div class="summary-row"><span>Zboží s DPH</span><strong>${money(total())}</strong></div><p class="muted">Dopravu a platbu vyberete v dalším kroku. Nakoupíte bez registrace.</p><a class="button primary" href="${esc(pageURL('doprava'))}" data-route="doprava">Pokračovat k dopravě ${icon('arrow-right')}</a></aside></div>` : `<section class="checkout-card empty-cart"><h2>Váš košík je prázdný</h2><p>Vyberte si hadici a přidejte ji do košíku.</p><a class="button primary" href="?kategorie=hydraulika" data-dept="hydraulika">Prohlédnout hadice ${icon('arrow-right')}</a></section>`));
   }
+  function add(id,qty=1) {
+    id=String(id);
+    if(!get(id)||max(id)<1){notify('Produkt momentálně není dostupný.');return false;}
+    const wanted=(lines.get(id)||0)+Math.max(1,Math.floor(Number(qty)||1));
+    lines.set(id,Math.min(max(id),wanted));persist();
+    notify(wanted>max(id)?'V košíku už máte dostupné množství.':'Přidáno do košíku');return true;
+  }
+  function clear(){lines.clear();persist();}
   function init(options) {
-    products = options.products; notify = options.notify; openPanel = options.openPanel; closePanel = options.closePanel;
-    lines = new Map();
-    try {
-      const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
-      if (Array.isArray(saved)) saved.forEach(line => {
-        if (Array.isArray(line) && product(line[0]) && Number.isFinite(Number(line[1])) && Number(line[1]) > 0) lines.set(String(line[0]), quantity(line[1]));
-      });
-    } catch (_) { /* Ignore unavailable storage or malformed saved data. */ }
+    products=options.products;
+    try {const saved=JSON.parse(localStorage.getItem(storageKey)||'[]');if(Array.isArray(saved))for(const line of saved){if(Array.isArray(line)&&get(line[0])&&max(line[0])>0&&Number(line[1])>0)lines.set(String(line[0]),Math.min(max(line[0]),Math.floor(Number(line[1]))));}}catch{}
     persist();
-    if (init.bound) return;
-    init.bound = true;
-    document.addEventListener('click', event => {
-      const target = event.target.closest('[data-basket-action]');
-      if (!target) return;
-      const action = target.dataset.basketAction, id = target.dataset.basketId;
-      if (action === 'continue') { closePanel(); return; }
-      if (!entries().length) return;
-      if (action === 'download') { download(); return; }
-      if (action === 'email') {
-        const url = emailUrl();
-        if (url.length > 1800) { download(); notify('Přiložte stažený seznam k e-mailu na nerez@nerez.com'); }
-        else window.location.href = url;
-        return;
-      }
-      if (!lines.has(id)) return;
-      if (action === 'remove') lines.delete(id);
-      else if (action === 'increase' || action === 'decrease') lines.set(id, quantity(lines.get(id) + (action === 'increase' ? 1 : -1)));
-      else return;
-      persist(); open();
+    document.addEventListener('click',event=>{
+      const target=event.target.closest('[data-cart]');if(!target)return;
+      const id=target.dataset.id,action=target.dataset.cart;
+      if(action==='remove')lines.delete(id);
+      else if(lines.has(id))lines.set(id,Math.max(1,Math.min(max(id),lines.get(id)+(action==='plus'?1:-1))));
+      persist();render();
+      (document.querySelector(`[data-cart="${action}"][data-id="${id}"]:not(:disabled)`)||document.querySelector('[data-cart-qty]')||document.querySelector('#page-view h1'))?.focus();
     });
-    document.addEventListener('change', event => {
-      const input = event.target.closest('[data-basket-quantity]');
-      if (!input || !lines.has(input.dataset.basketQuantity)) return;
-      lines.set(input.dataset.basketQuantity, quantity(input.value)); persist(); open();
+    document.addEventListener('change',event=>{
+      const input=event.target.closest('[data-cart-qty]');if(!input)return;
+      const id=input.dataset.cartQty;
+      lines.set(id,Math.max(1,Math.min(max(id),Math.floor(Number(input.value)||1))));persist();render();document.querySelector('[data-cart-qty]')?.focus();
     });
   }
-  function add(id, qty = 1) {
-    id = String(id);
-    if (!product(id)) return;
-    lines.set(id, quantity((lines.get(id) || 0) + quantity(qty))); persist(); notify('Přidáno do košíku');
-  }
-  return { init, add, open };
+  return {init,add,render,entries,total,clear,open:()=>goPage('kosik')};
 })();

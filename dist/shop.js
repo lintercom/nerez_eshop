@@ -6,6 +6,7 @@ const priceFormat = new Intl.NumberFormat('cs-CZ', { minimumFractionDigits: 0, m
 const money = value => priceFormat.format(Number(value)) + ' Kč';
 const number = value => Number(value).toLocaleString('cs-CZ');
 const normalize = value => String(value || '').toLocaleLowerCase('cs').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const displayName = product => (product.name.startsWith(product.code + ' / ') ? product.name.slice(String(product.code).length + 3) : product.name).replace(/^hadice/, 'Hadice');
 const pageSize = 12;
 const featuredIds = ['10001'];
 const kardanFeaturedIds = [];
@@ -18,7 +19,7 @@ const shortNames = {};
 let categories = [], products = [], specs = {}, ready = false, expanded = false;
 let lastDepartment;
 const byId = new Map();
-const dialog = $('#dialog');
+const pageView = $('#page-view');
 const rail = $('#type-rail');
 const search = $('#search');
 const suggestions = document.createElement('div');
@@ -64,40 +65,39 @@ function departmentFor(p) {
   return null;
 }
 function isHome(p) {
-  return !['kategorie','typ','q','od','do','page','sort'].some(key=>p.has(key));
+  return !['kategorie','typ','q','od','do','page','sort','stranka','dil'].some(key=>p.has(key));
 }
 function pageTitle() {
   const p = params();
-  return (departments[departmentFor(p)]?.title || (isHome(p) ? 'Náhradní díly' : 'Katalog produktů')) + ' | NEREZ Vizovice';
+  return (departments[departmentFor(p)]?.title || (isHome(p) ? 'Hydraulické hadice' : 'Výsledky hledání')) + ' | NEREZ Vizovice';
 }
 function departmentRoute(id,type=null) {
-  return {kategorie:id,typ:type,q:null,od:null,do:null,page:null,sort:null,dil:null};
+  return {kategorie:id,typ:type,q:null,od:null,do:null,page:null,sort:null,dil:null,stranka:null,objednavka:null};
 }
 function catalogScroll() {
-  $('#katalog').scrollIntoView({ block: 'start', behavior: 'instant' });
+  $('#shop-view').scrollIntoView({ block: 'start', behavior: 'instant' });
 }
-function dialogHeader(title) {
-  return '<div class="dialog-header"><h2 id="dialog-title">' + esc(title) + '</h2><button class="close" data-close aria-label="Zavřít">' + icon('x') + '</button></div>';
+function pageURL(page, extra={}) { return urlWith({...departmentRoute(null),stranka:page,objednavka:null,...extra}); }
+function goPage(page, extra={}, replace=false) {
+  const updates={...departmentRoute(null),stranka:page,objednavka:null,...extra};
+  if(replace){history.replaceState({},'',urlWith(updates));renderRoute(true);}else navigate(updates,true);
 }
-function openPanel(type, html) {
-  dialog.dataset.panel = type;
-  dialog.classList.toggle('drawer', type === 'cart' || type === 'filters');
-  $('#dialog-content').innerHTML = html;
-  dialog.setAttribute('aria-labelledby','dialog-title');
-  if (!dialog.open) dialog.showModal();
-  suggestions.hidden = true;
+function pageHeading(title) {
+  return '<nav class="breadcrumbs" aria-label="Drobečková navigace"><a href="index.html">Úvod</a> / <span aria-current="page">'+esc(title)+'</span></nav><h1 tabindex="-1">'+esc(title)+'</h1>';
 }
-function closePanel() {
-  if (params().has('dil')) history.replaceState({}, '', urlWith({dil:null}));
-  if (dialog.open) dialog.close();
-  document.title = pageTitle();
+function renderPage(type, html) {
+  $('#home-view').hidden=true;$('#shop-view').hidden=true;pageView.hidden=false;
+  pageView.dataset.view=type;pageView.innerHTML=html;
+  $('.skip').href='#page-view';
+  document.title=(pageView.querySelector('h1')?.textContent||'NEREZ')+' | NEREZ Vizovice';
+  suggestions.hidden=true;
 }
 
 function renderTypes() {
   const p = params();
   const department = departmentFor(p);
   const selected = p.get('typ');
-  rail.innerHTML = categories.filter(c=>c.department===department).map(category => '<a class="type-card' + (category.id === selected ? ' selected' : '') + '" href="' + esc(urlWith(departmentRoute(department,category.id))) + '" data-category="' + esc(category.id) + '" title="' + esc(category.name) + '"><span class="type-photo"><img src="' + esc(category.image) + '" alt="" width="140" height="90"></span><span class="type-text"><span>' + esc(shortNames[category.id] || category.name) + '</span>' + icon('arrow-right') + '</span></a>').join('');
+  rail.innerHTML = categories.filter(c=>c.department===department).map(category => '<a class="category-choice' + (category.id === selected ? ' selected' : '') + '" href="' + esc(urlWith(departmentRoute(department,category.id))) + '" data-category="' + esc(category.id) + '"' + (category.id === selected ? ' aria-current="page"' : '') + '><span>' + esc(category.name) + '</span>' + icon('arrow-right') + '</a>').join('');
   setRailButtons();
 }
 function setRailButtons() {
@@ -132,7 +132,7 @@ function getResults(p) {
   return filtered;
 }
 function productCard(product) {
-  return '<article class="product-card"><a class="product-main" data-product="' + esc(product.id) + '" href="' + esc(urlWith({dil:product.id})) + '"><div class="product-img"><img loading="lazy" src="' + esc(product.image) + '" alt=""></div><span class="product-code">' + esc(product.code) + '</span><h3>' + esc(product.name) + '</h3><p class="product-stock">Množství: ' + number(product.stock) + ' ks</p></a><div class="product-bottom"><span class="price">' + money(product.price) + ' <small>/ ' + esc(product.unit) + '</small></span><button type="button" class="add-btn" data-add="' + esc(product.id) + '" aria-label="Přidat do košíku: ' + esc(product.name) + '" title="Přidat do košíku">' + icon('cart-add') + '</button></div></article>';
+  return '<article class="product-card"><a class="product-main" data-product="' + esc(product.id) + '" href="' + esc(urlWith({dil:product.id})) + '"><div class="product-img"><img loading="lazy" src="' + esc(product.image) + '" alt=""></div><span class="product-code">' + esc(product.code) + '</span><h3>' + esc(displayName(product)) + '</h3><p class="product-stock">Ukázkové množství: ' + number(product.stock) + ' ks</p></a><div class="product-bottom"><span class="price">' + money(product.price) + ' <small>s DPH / ' + esc(product.unit) + '</small></span><button type="button" class="add-btn" data-add="' + esc(product.id) + '" aria-label="Přidat do košíku: ' + esc(displayName(product)) + '" title="Přidat do košíku">' + icon('cart-add') + '<span>Do košíku</span></button></div></article>';
 }
 function pagination(page,total) {
   if (total < 2) return '';
@@ -158,33 +158,49 @@ function renderCatalog() {
   const found = getResults(p);
   const total = Math.ceil(found.length / pageSize);
   const page = Math.min(total || 1, Math.max(1, Math.trunc(Number(p.get('page'))) || 1));
+  $('#inline-filters').hidden=true;$('#filter-trigger').setAttribute('aria-expanded','false');
   const section = $('#products');
   section.setAttribute('aria-busy','false');
   $('#result-count').textContent = number(found.length) + (found.length === 1 ? ' produkt' : found.length >= 2 && found.length <= 4 ? ' produkty' : ' produktů');
+  $('.sort-label').hidden = products.length < 2;
   $('#sort').value = ['low','high','name'].includes(p.get('sort')) ? p.get('sort') : 'default';
   search.value = p.get('q') || '';
   renderChips(p);
-  section.innerHTML = found.length ? found.slice((page-1)*pageSize,page*pageSize).map(productCard).join('') : '<div class="blank"><h3>Žádné odpovídající díly</h3><p>Zkuste jiný název, kód nebo širší cenové rozpětí.</p><button class="button secondary" data-reset>Zobrazit celý katalog</button></div>';
+  section.innerHTML = found.length ? found.slice((page-1)*pageSize,page*pageSize).map(productCard).join('') : '<div class="blank"><h3>Žádné odpovídající díly</h3><p>Zkuste jiný název, kód nebo širší cenové rozpětí.</p><button class="button secondary" data-reset>Zobrazit celý katalog</button><p class="empty-advice">Nenašli jste svůj díl? <a href="tel:+420577452200">Zavolejte +420 577 452 200</a>.</p></div>';
   $('#paging').innerHTML = pagination(page,total);
 }
 function detail(id) {
   const product = byId.get(id);
   if (!product) {
-    openPanel('detail', dialogHeader('Díl nebyl nalezen') + '<p class="muted">Tento díl se v katalogu nepodařilo najít.</p>');
+    renderPage('detail', pageHeading('Díl nebyl nalezen') + '<p class="muted">Tento díl se v katalogu nepodařilo najít.</p>');
     return;
   }
   const category = categories.find(item=>item.id === product.categoryId);
-  const rows = {'Katalogový kód':product.code,'Kategorie':category?.name || departments[product.departments[0]].title,'Množství':number(product.stock)+' ks','Cena bez DPH':money(product.priceExVat)+' / ks','DPH':number(product.vat)+' %'};
+  const rows = {'Katalogový kód':product.code,'Kategorie':category?.name || departments[product.departments[0]].title,'Ukázkové množství':number(product.stock)+' ks','Cena bez DPH':money(product.priceExVat)+' / ks','DPH':number(product.vat)+' %','Označení rozměru':'16x1.5x3500','Koncovky dle označení':'DKL-DKL'};
   const facts = Object.entries(rows).map(([label,value])=>'<dt>'+esc(label)+'</dt><dd>'+esc(value)+'</dd>').join('');
-  openPanel('detail',dialogHeader('Detail produktu') + '<div class="detail-layout"><div class="detail-photo"><img src="'+esc(product.image)+'" alt="'+esc(product.name)+'"></div><div class="detail-info"><span class="product-code">'+esc(product.code)+'</span><h3>'+esc(product.name)+'</h3><dl>'+facts+'</dl><span class="price">'+money(product.price)+' <small>s DPH / '+esc(product.unit)+'</small></span><p class="detail-note">Ukázková nabídka. Aktuální cenu a dostupnost potvrdíme na poptávku.</p><form class="detail-actions" id="detail-add"><div class="quantity"><button type="button" data-qty="-1" aria-label="Snížit množství">'+icon('minus')+'</button><input id="detail-qty" type="number" min="1" max="9999" step="1" required value="1" aria-label="Počet jednotek"><button type="button" data-qty="1" aria-label="Zvýšit množství">'+icon('plus')+'</button></div><button class="button primary">'+icon('cart-add')+' Do košíku</button></form></div></div>');
+  renderPage('detail',pageHeading(displayName(product)) + '<div class="detail-layout"><div class="detail-photo"><img src="'+esc(product.image)+'" alt="'+esc(displayName(product))+'"></div><div class="detail-info"><span class="product-code">'+esc(product.code)+'</span><dl>'+facts+'</dl><span class="price">'+money(product.price)+' <small>s DPH / '+esc(product.unit)+'</small></span><p class="detail-note">Vývojový katalog: stav a cena nejsou propojené s POHODOU. Fotografie a úplné technické parametry se připravují. Objednávku můžete dokončit pouze ve zkušebním režimu.</p><form class="detail-actions" id="detail-add"><div class="quantity"><button type="button" data-qty="-1" aria-label="Snížit množství">'+icon('minus')+'</button><input id="detail-qty" type="number" min="1" max="'+Number(product.stock)+'" step="1" required value="1" aria-label="Počet jednotek"><button type="button" data-qty="1" aria-label="Zvýšit množství">'+icon('plus')+'</button></div><button class="button primary">'+icon('cart-add')+' Přidat do košíku</button></form><a class="product-advice" href="tel:+420577452200">Potřebujete ověřit správnou hadici? +420 577 452 200</a></div></div>');
   document.title = product.name + ' | NEREZ Vizovice';
 }
 function renderRoute(scroll=false) {
   if (!ready) return;
+  pageView.hidden=true;
   suggestions.hidden = true;
   const p = params();
   const department = departmentFor(p);
   const home = isHome(p);
+  renderSidebar(department,p.get('typ'));
+  const route=p.get('stranka');
+  if(p.get('dil') || route) {
+    $('#home-view').hidden=true;$('#shop-view').hidden=true;
+    if(p.get('dil')) detail(p.get('dil'));
+    else if(route==='kosik') Basket.render();
+    else if(['doprava','udaje','kontrola'].includes(route)) Checkout.render(route);
+    else if(route==='potvrzeni') Checkout.confirmation(p.get('objednavka'));
+    else if(route==='kontakty') contact();
+    else renderPage('missing',pageHeading('Stránka nebyla nalezena')+'<a href="index.html">Zpět na úvod</a>');
+    if(scroll || p.get('dil')) {window.scrollTo({top:0,behavior:'instant'});pageView.querySelector('h1')?.focus({preventScroll:true});}
+    return;
+  }
   $('#home-view').hidden = !home;
   $('#shop-view').hidden = home;
   $('.skip').href = home ? '#home-products' : '#katalog';
@@ -194,31 +210,29 @@ function renderRoute(scroll=false) {
     $('#home-products').innerHTML = homepageProducts.map(productCard).join('');
     $('#home-products').setAttribute('aria-busy','false');
   } else {
-    $('#department-hero').hidden = !department;
-    $('#shop-view .types').hidden = true;
+    $('#shop-view .types').hidden = !department;
+    $('#category-title').textContent = department ? departments[department].name : (p.get('q') ? 'Výsledky hledání' : 'Produkty');
+    const selectedCategory = categories.find(c=>c.id === p.get('typ'));
+    if (selectedCategory) $('#category-title').textContent = selectedCategory.name;
+    $('#breadcrumbs').innerHTML = '<a href="index.html">Úvod</a>' + (department ? (selectedCategory ? ' / <a data-dept="'+department+'" href="'+esc(urlWith(departmentRoute(department)))+'">'+esc(departments[department].name)+'</a>' : ' / <span aria-current="page">'+esc(departments[department].name)+'</span>') : '') + (selectedCategory ? ' / <span aria-current="page">'+esc(selectedCategory.name)+'</span>' : '');
     if (department) {
-      $('#department-hero').dataset.department = department;
-      $('#department-hero h1').textContent = departments[department].title;
-      $('#department-hero p').textContent = departments[department].description;
       rail.setAttribute('aria-label','Podkategorie: '+departments[department].name);
       if (department!==lastDepartment) setExpanded(false);
       renderTypes();
     }
-    $('#catalog-heading').textContent = p.get('q') ? 'Výsledky hledání' : 'Katalog produktů';
     renderCatalog();
   }
   lastDepartment = department;
-  const id = p.get('dil');
-  if (id) detail(id);
-  else closePanel();
+  document.title=pageTitle();
   if (scroll && !home) catalogScroll();
 }
 function renderSidebar(department,selected) {
   $('#side-links').innerHTML = Object.entries(departments).map(([id,info])=>{
     const active = department === id;
-    const link = '<a class="side-dept' + (active?' active':'') + '" href="'+esc(urlWith(departmentRoute(id)))+'" data-dept="'+id+'"'+(active && !selected?' aria-current="page"':'')+'><span>'+esc(info.name)+'</span>'+icon('chevron-right')+'</a>';
-    const children = active ? categories.filter(c=>c.department===id).map(c=>'<a class="side-sub'+(c.id===selected?' active':'')+'" href="'+esc(urlWith(departmentRoute(id,c.id)))+'" data-category="'+esc(c.id)+'"'+(c.id===selected?' aria-current="page"':'')+'>'+esc(c.name)+'</a>').join('') : '';
-    return '<div class="side-group">'+link+(active?'<div class="side-subs">'+children+'</div>':'')+'</div>';
+    const link = '<a class="side-dept' + (active?' active':'') + '" href="'+esc(urlWith(departmentRoute(id)))+'" data-dept="'+id+'"'+(active && !selected?' aria-current="page"':'')+'><span class="side-category-name">'+esc(info.name)+'</span>'+icon('chevron-right')+'</a>';
+    const children = categories.filter(c=>c.department===id);
+    const submenu = '<div class="category-flyout"><a class="category-flyout-title" data-dept="'+id+'" href="'+esc(urlWith(departmentRoute(id)))+'">'+esc(info.name)+icon('arrow-right')+'</a><div class="category-flyout-links">'+children.map(c=>'<a data-category="'+esc(c.id)+'" href="'+esc(urlWith(departmentRoute(id,c.id)))+'">'+esc(c.name)+'</a>').join('')+'</div></div>';
+    return '<div class="side-group">'+link+submenu+'</div>';
   }).join('');
   $('#sidebar').classList.remove('is-open');
   $('#side-toggle').setAttribute('aria-expanded','false');
@@ -227,16 +241,20 @@ function filters() {
   const p = params();
   const department = departmentFor(p);
   const options = categories.filter(cat=>!department || cat.department===department).map(cat=>'<option value="'+esc(cat.id)+'" '+(cat.id===p.get('typ')?'selected':'')+'>'+esc(cat.name)+'</option>').join('');
-  openPanel('filters', dialogHeader('Filtrovat produkty') + '<form class="filter-form" id="filters-form"><label>Typ dílu<select name="typ"><option value="">Všechny podkategorie</option>'+options+'</select></label><div class="price-range"><label>Cena od (Kč)<input name="od" type="number" step="0.01" min="0" value="'+esc(priceLimit(p,'od'))+'" placeholder="0"></label><label>Cena do (Kč)<input name="do" type="number" step="0.01" min="0" value="'+esc(priceLimit(p,'do'))+'" placeholder="Bez omezení"></label></div><div class="filter-buttons"><button class="button primary" type="submit">Zobrazit produkty '+icon('arrow-right')+'</button><button class="button secondary" type="button" data-clear-filters>Zrušit filtry</button></div></form>');
+  const host=$('#inline-filters');
+  if(!host.hidden){host.hidden=true;$('#filter-trigger').setAttribute('aria-expanded','false');return;}
+  host.hidden=false;$('#filter-trigger').setAttribute('aria-expanded','true');
+  host.innerHTML = '<form class="filter-form" id="filters-form"><label>Typ dílu<select name="typ"><option value="">Všechny podkategorie</option>'+options+'</select></label><div class="price-range"><label>Cena od (Kč)<input name="od" type="number" step="0.01" min="0" value="'+esc(priceLimit(p,'od'))+'" placeholder="0"></label><label>Cena do (Kč)<input name="do" type="number" step="0.01" min="0" value="'+esc(priceLimit(p,'do'))+'" placeholder="Bez omezení"></label></div><div class="filter-buttons"><button class="button primary" type="submit">Zobrazit produkty '+icon('arrow-right')+'</button><button class="button secondary" type="button" data-clear-filters>Zrušit filtry</button></div></form>';
+  host.querySelector('select')?.focus();
 }
 function contact() {
-  openPanel('contact',dialogHeader('Kontakty') + '<div class="contact-card"><h3>Nerez Vizovice s.r.o.</h3><p>Tyršova 749, 763 12 Vizovice</p><p><a href="tel:+420577452200">'+icon('phone')+'+420 577 452 200</a></p><p><a href="mailto:nerez@nerez.com">'+icon('mail')+'nerez@nerez.com</a></p><p class="muted">IČ 06532446 · DIČ CZ06532446</p></div><a class="button secondary" href="https://www.nerez.com/" target="_blank" rel="noopener">Firemní web NEREZ '+icon('arrow-up-right')+'</a>');
+  renderPage('contact',pageHeading('Kontakty') + '<div class="contact-card"><h3>Nerez Vizovice s.r.o.</h3><p>Tyršova 749, 763 12 Vizovice</p><p><a href="tel:+420577452200">'+icon('phone')+'+420 577 452 200</a></p><p><a href="mailto:nerez@nerez.com">'+icon('mail')+'nerez@nerez.com</a></p><p class="muted">IČ 06532446 · DIČ CZ06532446</p></div><a class="button secondary" href="https://www.nerez.com/" target="_blank" rel="noopener">Firemní web NEREZ '+icon('arrow-up-right')+'</a>');
 }
 function searchPreview() {
   const query = terms(search.value);
   if (!query.length || !ready) { suggestions.hidden = true; return; }
   const found = products.filter(item=>matchesTerms(item,query));
-  const rows = found.slice(0,4).map(item=>'<a data-product="'+esc(item.id)+'" href="'+esc(urlWith({dil:item.id}))+'"><img src="'+esc(item.image)+'" alt=""><span><strong>'+esc(item.name)+'</strong><small>'+esc(item.code)+'</small></span></a>').join('');
+  const rows = found.slice(0,4).map(item=>'<a data-product="'+esc(item.id)+'" href="'+esc(urlWith({dil:item.id}))+'"><img src="'+esc(item.image)+'" alt=""><span><strong>'+esc(displayName(item))+'</strong><small>'+esc(item.code)+'</small></span></a>').join('');
   suggestions.innerHTML = rows + '<button class="search-all" type="submit">'+(found.length?'Zobrazit výsledky ('+number(found.length)+')':'Zobrazit hledání bez výsledků')+icon('arrow-right')+'</button>';
   suggestions.hidden = false;
 }
@@ -244,9 +262,10 @@ search.addEventListener('input',searchPreview);
 search.addEventListener('focus',searchPreview);
 $('#search-form').addEventListener('keydown',event=>{
   if (event.key==='Escape') { suggestions.hidden=true; search.focus(); suggestions.hidden=true; }
-  if (event.key === 'ArrowDown' && !suggestions.hidden) {
+  if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && !suggestions.hidden) {
     const items = [...suggestions.querySelectorAll('a,button')];
-    const next = items[Math.min(items.indexOf(document.activeElement)+1,items.length-1)];
+    const current = items.indexOf(document.activeElement);
+    const next = items[Math.max(0,Math.min(current + (event.key === 'ArrowDown' ? 1 : -1),items.length-1))];
     if (next) { event.preventDefault(); next.focus(); }
   }
 });
@@ -275,7 +294,7 @@ $('#side-toggle').addEventListener('click',()=>{
 const hero = $('#home-hero');
 const heroSlides = [...hero.querySelectorAll('.nerez-hero-slide')];
 let heroIndex = 0;
-let heroPaused = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let heroPaused = true;
 function showHero(index) {
   heroIndex = (index + heroSlides.length) % heroSlides.length;
   heroSlides.forEach((slide, i) => {
@@ -295,8 +314,6 @@ updateHeroPause();
 setInterval(() => {
   if (!heroPaused && !document.hidden && !$('#home-view').hidden && !hero.matches(':hover') && !hero.contains(document.activeElement)) showHero(heroIndex + 1);
 }, 5000);
-dialog.addEventListener('cancel',event=>{event.preventDefault();closePanel();});
-dialog.addEventListener('click',event=>{if(event.target===dialog)closePanel();});
 document.addEventListener('click',event=>{
   const anchor = event.target.closest('a[href^="#"]');
   if (anchor && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
@@ -313,13 +330,14 @@ document.addEventListener('click',event=>{
     }
   }
   if (!event.target.closest('#search-form')) suggestions.hidden=true;
-  const action = event.target.closest('[data-open],[data-close],[data-dept],[data-category],[data-product],[data-add],[data-page],[data-remove-filter],[data-reset],[data-qty],[data-clear-filters]');
+  const action = event.target.closest('[data-route],[data-open],[data-close],[data-dept],[data-category],[data-product],[data-add],[data-page],[data-remove-filter],[data-reset],[data-qty],[data-clear-filters]');
   if (!action || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
   const d = action.dataset;
-  if ('close' in d) {closePanel();return;}
-  if (d.open==='contact') {contact();return;}
+  if ('close' in d) {history.back();return;}
+  if(d.route){event.preventDefault();goPage(d.route);return;}
+  if (d.open==='contact') {event.preventDefault();goPage('kontakty');return;}
   if (!ready) return;
-  if (d.open==='cart') Basket.open();
+  if (d.open==='cart') {event.preventDefault();Basket.open();}
   if (d.open==='filters') filters();
   if (d.dept) {
     event.preventDefault();
@@ -327,13 +345,13 @@ document.addEventListener('click',event=>{
     window.scrollTo({top:0,behavior:'instant'});
   }
   if (d.category) { event.preventDefault(); navigate(departmentRoute(categories.find(c=>c.id===d.category).department,d.category),true); }
-  if (d.product) { event.preventDefault(); navigate({dil:d.product}); }
-  if (d.add) Basket.add(d.add);
+  if (d.product) { event.preventDefault(); navigate({dil:d.product,stranka:null,objednavka:null},true); }
+  if (d.add) { if(Basket.add(d.add)) Basket.open(); }
   if (d.page) navigate({page:Number(d.page),dil:null},true);
   if (d.removeFilter) navigate({[d.removeFilter]:null,page:null,dil:null},true);
   if ('reset' in d) navigate({q:null,typ:null,od:null,do:null,page:null,dil:null},true);
   if ('clearFilters' in d) navigate({typ:null,od:null,do:null,page:null,dil:null},true);
-  if (d.qty) { const field=$('#detail-qty'); field.value=Math.min(9999,Math.max(1,(Math.floor(Number(field.value))||1)+Number(d.qty))); }
+  if (d.qty) { const field=$('#detail-qty'); field.value=Math.min(Number(field.max),Math.max(1,(Math.floor(Number(field.value))||1)+Number(d.qty))); }
 });
 document.addEventListener('submit',event=>{
   const form = event.target;
@@ -348,7 +366,7 @@ document.addEventListener('submit',event=>{
     navigate({typ:data.get('typ'),od:min,do:max,page:null,dil:null},true);
   }
   if (form.id==='detail-add') {
-    event.preventDefault(); Basket.add(params().get('dil'),Number($('#detail-qty').value)); closePanel(); Basket.open();
+    event.preventDefault(); if(Basket.add(params().get('dil'),Number($('#detail-qty').value))) Basket.open();
   }
 });
 window.addEventListener('popstate',()=>renderRoute());
@@ -401,14 +419,13 @@ async function start() {
     const priority = new Set([...kardanFeaturedIds,...featuredIds]);
     products = [...Array.from(priority,id=>byId.get(id)).filter(Boolean),...Array.from(byId.values()).filter(item=>!priority.has(item.id))];
     homepageProducts = products.slice(0,8);
-    Basket.init({products:byId,notify,openPanel,closePanel});
+    Basket.init({products:byId});
     ready=true;
     renderRoute();
-    if (!params().get('dil') && (params().has('typ') || params().has('q') || params().has('page') || location.hash === '#katalog')) catalogScroll();
+    if (!params().get('dil') && !params().get('stranka') && (params().has('typ') || params().has('q') || params().has('page') || location.hash === '#katalog')) catalogScroll();
   } catch {
     $('#home-view').hidden=true;
     $('#shop-view').hidden=false;
-    $('#department-hero').hidden=true;
     $('#shop-view .types').hidden=true;
     $('#products').setAttribute('aria-busy','false');
     $('#products').innerHTML='<div class="blank"><h3>Katalog se nepodařilo načíst</h3><p>Obnovte stránku a zkuste to znovu.</p><a class="button secondary" href="./">Obnovit katalog</a></div>';

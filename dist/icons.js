@@ -1,5 +1,6 @@
 'use strict';
 const iconPaths = {
+  hose: '<path d="M6 5v4a6 6 0 0 0 12 0V5M3 2h6v4H3zM15 2h6v4h-6zM6 18v4m12-4v4M3 19h6m6 0h6"/>',
   'arrow-down': '<path d="M12 4v16m-6-6 6 6 6-6"/>',
   'arrow-left': '<path d="M20 12H4m7-7-7 7 7 7"/>',
   'arrow-right': '<path d="M4 12h16m-7-7 7 7-7 7"/>',
