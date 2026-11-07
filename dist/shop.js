@@ -272,11 +272,29 @@ $('#side-toggle').addEventListener('click',()=>{
   const open=$('#sidebar').classList.toggle('is-open');
   $('#side-toggle').setAttribute('aria-expanded',String(open));
 });
-document.querySelectorAll('[data-slide]').forEach(button=>button.addEventListener('click',()=>{
-  const slides=Array.from(document.querySelectorAll('.home-slide'));
-  const next=(slides.findIndex(s=>!s.hidden)+Number(button.dataset.slide)+slides.length)%slides.length;
-  slides.forEach((slide,index)=>slide.hidden=index!==next);
-}));
+const hero = $('#home-hero');
+const heroSlides = [...hero.querySelectorAll('.nerez-hero-slide')];
+let heroIndex = 0;
+let heroPaused = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function showHero(index) {
+  heroIndex = (index + heroSlides.length) % heroSlides.length;
+  heroSlides.forEach((slide, i) => {
+    slide.classList.toggle('is-active', i === heroIndex);
+    slide.setAttribute('aria-hidden', String(i !== heroIndex));
+  });
+}
+function updateHeroPause() {
+  const button = hero.querySelector('[data-hero-pause]');
+  button.textContent = heroPaused ? 'Spustit' : 'Pozastavit';
+  button.setAttribute('aria-label', heroPaused ? 'Spustit střídání snímků' : 'Pozastavit střídání snímků');
+}
+hero.querySelector('[data-hero-prev]').addEventListener('click', () => showHero(heroIndex - 1));
+hero.querySelector('[data-hero-next]').addEventListener('click', () => showHero(heroIndex + 1));
+hero.querySelector('[data-hero-pause]').addEventListener('click', () => { heroPaused = !heroPaused; updateHeroPause(); });
+updateHeroPause();
+setInterval(() => {
+  if (!heroPaused && !document.hidden && !$('#home-view').hidden && !hero.matches(':hover') && !hero.contains(document.activeElement)) showHero(heroIndex + 1);
+}, 5000);
 dialog.addEventListener('cancel',event=>{event.preventDefault();closePanel();});
 dialog.addEventListener('click',event=>{if(event.target===dialog)closePanel();});
 document.addEventListener('click',event=>{
